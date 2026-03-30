@@ -1,212 +1,210 @@
-# 🧠 Agentic RAG Chatbot with LangGraph
+# 🧠 Agentic Corrective RAG System (LangGraph + FastAPI)
 
-This project is an **Agentic AI chatbot** built using **LangGraph + LangChain**, capable of:
-
-* 📄 Answering questions from a PDF (RAG)
-* 🌐 Performing web search
-* 🧮 Solving calculations
-* 📈 Fetching stock prices
-
-It uses a **tool-augmented LLM agent** with a **graph-based execution flow**.
+> A production-oriented **Agentic AI system** that goes beyond traditional RAG by **evaluating its own retrieval quality**, **dynamically routing between internal and external knowledge**, and **refining context at sentence level**.
 
 ---
 
-# 🚀 Features
+# 🚀 Why This Project Matters
 
-* ✅ Retrieval-Augmented Generation (RAG) over PDF
-* ✅ Multi-tool support (Search, Calculator, Stock API)
-* ✅ LangGraph-based agent workflow
-* ✅ Tool routing using `tools_condition`
-* ✅ Fast dependency management using `uv`
+Most RAG systems:
+
+* ❌ Blindly trust retrieved documents
+* ❌ Fail when retrieval is weak
+* ❌ Cannot adapt to missing or ambiguous context
 
 ---
 
-# 🏗️ Architecture
+### ✅ This system solves that:
 
-```
-User Query
-   ↓
-Chat Node (LLM)
-   ↓
-tools_condition
-   ├── Tool Call → Tool Node → Chat Node (loop)
-   └── No Tool → END
-```
+* Evaluates retrieval quality using LLM
+* Decides whether to:
+
+  * Trust internal knowledge
+  * Fetch external data
+  * Combine both
+* Refines context before answering
+
+---
+
+# 🏗️ System Architecture (Agentic Flow)
+
+                ┌──────────────────────┐
+                │     User Query       │
+                └──────────┬───────────┘
+                           ↓
+                ┌──────────────────────┐
+                │    Retriever (RAG)   │
+                └──────────┬───────────┘
+                           ↓
+        ┌────────────────────────────────────┐
+        │  LLM-based Document Evaluation     │
+        │  (score each chunk: 0.0 → 1.0)     │
+        └──────────┬───────────┬────────────┘
+                   │           │
+        ┌──────────▼───┐   ┌───▼──────────┐
+        │   CORRECT    │   │  INCORRECT   │
+        │ (trust docs) │   │ (use web)    │
+        └──────┬───────┘   └──────┬───────┘
+               │                  │
+               │         ┌────────▼────────┐
+               │         │  Web Search     │
+               │         │ (Query Rewrite) │
+               │         └────────┬────────┘
+               │                  │
+               └────────┬─────────┘
+                        ↓
+              ┌──────────────────────┐
+              │ Context Refinement   │
+              │ (Sentence Filtering) │
+              └──────────┬───────────┘
+                         ↓
+              ┌──────────────────────┐
+              │   Final Answer       │
+              └──────────────────────┘
+
+---
+
+# 🧠 Key Features
+
+## 🔍 1. Self-Evaluating Retrieval (Core Innovation)
+
+* Each retrieved chunk is scored using LLM
+* Structured output:
+
+  * `score (0.0 – 1.0)`
+  * `reason`
+
+### Decision Logic:
+
+* `> 0.7` → ✅ Reliable (CORRECT)
+* `< 0.3` → ❌ Irrelevant (INCORRECT)
+* Otherwise → ⚠️ Ambiguous
+
+---
+
+## 🔀 2. Adaptive Routing (Agentic Behavior)
+
+Instead of static pipelines:
+
+RAG → Answer ❌
+
+
+This system does:
+
+RAG → Evaluate → Decide → Adapt → Answer ✅
+
+---
+
+## ✂️ 3. Sentence-Level Context Refinement
+
+* Documents are split into sentences
+* Each sentence is validated using LLM
+* Only relevant information is retained
+
+👉 Reduces noise and hallucination
+
+---
+
+## 🌐 4. Web-Augmented Intelligence
+
+* Automatically triggers web search when:
+
+  * Retrieval fails
+  * Context is insufficient
+* Uses query rewriting for better results
+
+---
+
+## 🔄 5. Hybrid Knowledge Fusion
+
+Combines:
+
+* Chroma (Cloud) → Managed vector database
+* 🌐 External knowledge (Tavily Search)
+
+---
+
+## ⚡ 6. Async Document Processing (Redis Queue)
+
+* PDF uploads processed in background
+* Scales independently from API
 
 ---
 
 # 🛠️ Tech Stack
 
-* **LangGraph** – Graph-based agent orchestration
-* **LangChain** – Tooling + RAG pipeline
-* **Mistral AI** – LLM + Embeddings
-* **FAISS** – Vector database
-* **uv** – Fast Python package manager
-* **Python** – Backend
+* **LangGraph** → Agent orchestration
+* **LangChain** → RAG + structured outputs
+* **Mistral AI** → LLM reasoning + evaluation
+* **Chroma Cloud** → Managed vector database
+* **Tavily** → Web search
+* **FastAPI** → Backend APIs
+* **Redis (RQ)** → Background jobs
+* **LangSmith** → LLM observability & tracing
+
 
 ---
 
-# 📂 Project Structure
+# 📊 Observability & Tracing
 
-```
-.
-├── main.py
-├── thebook.pdf
-├── .env
-├── pyproject.toml
-├── uv.lock
-└── README.md
-```
+This project integrates **LangSmith** for end-to-end observability of the agent workflow:
 
----
+- 🔍 Trace every step of the LangGraph execution
+- 🧠 Debug LLM decisions (retrieval, evaluation, routing)
+- 🛠️ Inspect tool usage and intermediate states
+- 📈 Monitor performance and latency
 
-# ⚙️ Setup Instructions (Using uv)
-
-## 1. Install uv
-
-```bash
-curl -Ls https://astral.sh/uv/install.sh | bash
-```
-
-or
-
-```bash
-pip install uv
-```
+👉 Enables **production-grade debugging and monitoring of agent behavior**
 
 ---
 
-## 2. Clone Repository
+# ⚙️ Setup
 
-```bash
-git clone <your-repo-url>
-cd <project-folder>
-```
-
----
-
-## 3. Create Virtual Environment
-
-```bash
-uv venv
-source .venv/bin/activate      # Mac/Linux
-.venv\Scripts\activate         # Windows
-```
-
----
-
-## 4. Install Dependencies
-
-If you have `pyproject.toml`:
-
-```bash
 uv sync
-```
-
-Or manually:
-
-```bash
-uv add langchain langgraph mistralai faiss-cpu python-dotenv duckduckgo-search
-```
+uvicorn main:app --reload
 
 ---
 
-## 5. Add Environment Variables
-
-Create `.env` file:
-
-```
-MISTRAL_API_KEY=your_api_key_here
-```
-
----
-
-## 6. Run the Application
-
-```bash
-python main.py
-```
-
----
-
-# 🔧 Tools Implemented
-
-## 📄 RAG Tool
-
-* Semantic search over PDF using FAISS
-* Retrieves relevant chunks
-
-## 🌐 Web Search Tool
-
-* DuckDuckGo integration for real-time data
-
-## 🧮 Calculator Tool
-
-* Supports: add, sub, mul, div
-
-## 📈 Stock Price Tool
-
-* Uses Alpha Vantage API
-
----
-
-# 🧠 How It Works
-
-1. PDF is loaded and split into chunks
-2. Embeddings are created and stored in FAISS
-3. User query is passed to LLM
-4. `tools_condition` decides:
-
-   * Use tool → execute → loop back
-   * No tool → return response
-
----
 
 # 🧪 Example Queries
 
-```
-What is 3 + 4
-Summarise the PDF
-Latest AI news
-AAPL stock price
-```
+* “What is machine learning?”
+* “Latest AI trends”
+* “Explain reinforcement learning from the PDF”
 
 ---
 
-# ⚠️ Known Limitations
+# ⚠️ Limitations
 
-* Tool usage depends on prompt quality
-* No memory (stateless agent)
-* RAG can be improved with re-ranking
-* No streaming yet
+* No persistent memory
+* No streaming responses
 
 ---
 
 # 🔮 Future Improvements
 
-* Add streaming responses
-* Add Redis/Postgres memory
-* Improve RAG (compression, hybrid search)
-* Add planner (multi-agent system)
-* Deploy using FastAPI
+* 🧠 Memory (Redis / Vector memory)
+* 🧩 Planner + Executor architecture
+* ⚡ Streaming responses
+* 🔍 Hybrid retrieval (BM25 + vector)
+* 📊 Observability (tracing, logs)
 
 ---
 
-# 🚀 Next Steps
+# 🆚 Why This Is Better Than Basic RAG
 
-To make this production-ready:
+| Feature                  | Basic RAG | This System |
+|------------------------|----------|------------|
+| Retrieval Evaluation    | ❌        | ✅          |
+| Adaptive Routing        | ❌        | ✅          |
+| Web Augmentation        | ❌        | ✅          |
+| Context Refinement      | ❌        | ✅          |
+| Agentic Behavior        | ❌        | ✅          |
+| Cloud Vector DB         | ❌        | ✅          |
 
-* Add **Agent Memory**
-* Add **Planner + Executor architecture**
-* Enable **parallel tool execution**
-* Add **frontend (React / Streamlit)**
 
 ---
 
 # 👨‍💻 Author
 
-Built by **Santosh Sakre**
-
----
-
-
+**Santosh Sakre**
